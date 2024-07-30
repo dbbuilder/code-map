@@ -1,0 +1,5 @@
+{
+  "root_folder_path": "c:\\devsv\\forgpt",
+  "log_file": "project_analysis.log",
+  "output_dot_file": "project_dependencies.dot"
+}

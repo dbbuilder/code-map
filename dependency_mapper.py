@@ -19,6 +19,10 @@ class DependencyMapper:
                 r'<!--\s*#include\s*file\s*=\s*[\'"](.+?)[\'"]\s*-->'
             ),  # HTML includes
             re.compile(r'(https?://[^\s\'"]+)'),  # API URLs (HTTP/HTTPS links)
+            re.compile(r'<Compile Include="(.+?)"'),  # VBProj includes
+            re.compile(
+                r'<ProjectReference Include="(.+?)"'
+            ),  # Project references in .vbproj and .sln
         ]
         self.method_pattern = re.compile(
             r"function\s+(\w+)\s*\("

@@ -32,7 +32,20 @@ class ProjectAnalyzer:
                     # Recursively gather all relevant files in the project directory
                     for root, _, files in os.walk(dir_path):
                         for file in files:
-                            if file.endswith((".vb", ".vue", ".html")):
+                            if file.endswith(
+                                (
+                                    ".vbproj",
+                                    ".js",
+                                    ".resx",
+                                    ".json",
+                                    ".sln",
+                                    ".asax",
+                                    ".aspx",
+                                    ".vb",
+                                    ".vue",
+                                    ".html",
+                                )
+                            ):
                                 project["files"].append(os.path.join(root, file))
                     projects.append(project)
         except Exception as e:
