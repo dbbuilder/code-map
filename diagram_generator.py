@@ -1,5 +1,6 @@
 import graphviz
 import os
+import subprocess
 
 
 class DiagramGenerator:
@@ -26,24 +27,50 @@ class DiagramGenerator:
 
             # Add nodes for each project
             for project in dependency_map:
+                self.logger.info(f"Adding node for project: {project}")
                 dot.node(project, project)
+
+            # Track added edges to prevent duplicates
+            added_edges = set()
 
             # Add edges for dependencies
             for project, dependencies in dependency_map.items():
                 for dependency in dependencies:
-                    dot.edge(project, dependency, label="uses")
+                    edge = (project, dependency)
+                    if edge not in added_edges:
+                        self.logger.info(f"Adding edge from {project} to {dependency}")
+                        # Ensure the URL is properly quoted
+                        if dependency.startswith(("http://", "https://")):
+                            dot.edge(project, dependency, label="uses")
+                        else:
+                            dot.edge(project, dependency, label="uses")
+                        added_edges.add(edge)
 
             # Add edges for shared methods
             for method, files in shared_methods.items():
                 method_node = f"method_{method}"
+                self.logger.info(f"Adding method node: {method_node}")
                 dot.node(method_node, method, shape="box")
                 for file in files:
                     project_name = self.extract_project_name(file)
-                    dot.edge(project_name, method_node, label="has method")
+                    edge = (project_name, method_node)
+                    if edge not in added_edges:
+                        self.logger.info(
+                            f"Adding edge from {project_name} to {method_node}"
+                        )
+                        dot.edge(project_name, method_node, label="has method")
+                        added_edges.add(edge)
 
             # Save the DOT file
             dot.save(output_file)
             self.logger.info(f"Dependency diagram saved to {output_file}")
+
+            # Render the DOT file to a PDF file using subprocess
+            output_pdf = output_file.replace(".dot", ".pdf")
+            self.logger.info(f"Rendering DOT file to PDF: {output_pdf}")
+            self.render_dot_to_pdf(output_file, output_pdf)
+            self.logger.info(f"Dependency diagram rendered to {output_pdf}")
+
         except Exception as e:
             self.logger.error(f"Failed to generate DOT file: {str(e)}")
 
@@ -65,3 +92,25 @@ class DiagramGenerator:
                 f"Failed to extract project name from {file_path}: {str(e)}"
             )
             return "unknown"
+
+    def render_dot_to_pdf(self, dot_file, pdf_file):
+        """
+        Renders a DOT file to a PDF using the Graphviz dot command.
+
+        Args:
+            dot_file (str): Path to the DOT file.
+            pdf_file (str): Path to the output PDF file.
+        """
+        try:
+            command = ["dot", "-Tpdf", dot_file, "-o", pdf_file]
+            self.logger.info(f"Running command: {' '.join(command)}")
+            result = subprocess.run(command, check=True, capture_output=True, text=True)
+            self.logger.info(f"dot command output: {result.stdout}")
+            if result.stderr:
+                self.logger.error(f"dot command error: {result.stderr}")
+        except subprocess.CalledProcessError as e:
+            self.logger.error(
+                f"Failed to render DOT file to PDF: {str(e)}, stderr: {e.stderr}"
+            )
+        except Exception as e:
+            self.logger.error(f"Unexpected error during PDF rendering: {str(e)}")

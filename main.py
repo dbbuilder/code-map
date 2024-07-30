@@ -1,9 +1,10 @@
 import json
 import os
+import logging  # Add this import
 from project_analyzer import ProjectAnalyzer
 from dependency_mapper import DependencyMapper
 from diagram_generator import DiagramGenerator
-from logger import setup_logger
+from custom_logger import setup_logger  # Updated import statement
 
 
 def load_config():
@@ -31,25 +32,37 @@ def main():
     config = load_config()
 
     # Setup logger
-    logger = setup_logger(config["log_file"])
+    base_path = config["root_folder_path"]
+    log_file = os.path.join(base_path, "project_analysis.log")
+    output_dot_file = os.path.join(base_path, "project_dependencies.dot")
+
+    logger = setup_logger(log_file)
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)
+    logger.addHandler(console_handler)
 
     try:
         root_folder_path = config["root_folder_path"]
-        output_dot_file = config.get("output_dot_file", "project_dependencies.dot")
 
         # Initialize ProjectAnalyzer and analyze projects
         analyzer = ProjectAnalyzer(logger)
+        logger.info("Starting project analysis...")
         projects = analyzer.analyze_projects(root_folder_path)
+        logger.info("Project analysis completed.")
 
         # Initialize DependencyMapper and map dependencies and methods
         mapper = DependencyMapper(logger)
+        logger.info("Starting dependency mapping...")
         dependency_map, shared_methods = mapper.map_dependencies_and_methods(projects)
+        logger.info("Dependency mapping completed.")
 
         # Generate diagram
         diagram_generator = DiagramGenerator(logger)
+        logger.info("Starting diagram generation...")
         diagram_generator.generate_dot_file(
             dependency_map, shared_methods, output_dot_file
         )
+        logger.info("Diagram generation completed.")
 
         # Print the results
         print(json.dumps(dependency_map, indent=4))

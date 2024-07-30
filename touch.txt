@@ -1,0 +1,7 @@
+touch config.json
+touch logger.py
+touch main.py
+touch project_analyzer.py
+touch dependency_mapper.py
+touch diagram_generator.py
+touch requirements.txt
