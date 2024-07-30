@@ -13,7 +13,9 @@ class DiagramGenerator:
         """
         self.logger = logger
 
-    def generate_dot_file(self, dependency_map, shared_methods, output_file):
+    def generate_dot_file(
+        self, dependency_map, shared_methods, output_file, include_methods=True
+    ):
         """
         Generates a DOT file for visualizing dependencies and shared methods.
 
@@ -21,6 +23,7 @@ class DiagramGenerator:
             dependency_map (dict): Dictionary of project dependencies.
             shared_methods (dict): Dictionary of shared methods across projects.
             output_file (str): Path to the output DOT file.
+            include_methods (bool): Whether to include method dependencies in the DOT file.
         """
         try:
             dot = graphviz.Digraph(comment="Project Dependencies and Methods")
@@ -39,27 +42,29 @@ class DiagramGenerator:
                     edge = (project, dependency)
                     if edge not in added_edges:
                         self.logger.info(f"Adding edge from {project} to {dependency}")
-                        # Ensure the URL is properly quoted
+                        # Properly format URLs by quoting and escaping them
                         if dependency.startswith(("http://", "https://")):
-                            dot.edge(project, dependency, label="uses")
+                            formatted_dependency = dependency.replace(":", "\\:")
+                            dot.edge(project, formatted_dependency, label="uses")
                         else:
                             dot.edge(project, dependency, label="uses")
                         added_edges.add(edge)
 
-            # Add edges for shared methods
-            for method, files in shared_methods.items():
-                method_node = f"method_{method}"
-                self.logger.info(f"Adding method node: {method_node}")
-                dot.node(method_node, method, shape="box")
-                for file in files:
-                    project_name = self.extract_project_name(file)
-                    edge = (project_name, method_node)
-                    if edge not in added_edges:
-                        self.logger.info(
-                            f"Adding edge from {project_name} to {method_node}"
-                        )
-                        dot.edge(project_name, method_node, label="has method")
-                        added_edges.add(edge)
+            # Add edges for shared methods if include_methods is True
+            if include_methods:
+                for method, files in shared_methods.items():
+                    method_node = f"method_{method}"
+                    self.logger.info(f"Adding method node: {method_node}")
+                    dot.node(method_node, method, shape="box")
+                    for file in files:
+                        project_name = self.extract_project_name(file)
+                        edge = (project_name, method_node)
+                        if edge not in added_edges:
+                            self.logger.info(
+                                f"Adding edge from {project_name} to {method_node}"
+                            )
+                            dot.edge(project_name, method_node, label="has method")
+                            added_edges.add(edge)
 
             # Save the DOT file
             dot.save(output_file)

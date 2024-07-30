@@ -33,6 +33,7 @@ class DependencyMapper:
             r"function\s+(\w+)\s*\("
         )  # JavaScript/VB method definitions
         self.localhost_pattern = re.compile(r"localhost:(\d+)")  # Localhost with port
+        self.supported_extensions = (".vb", ".vue", ".js")
 
     def map_dependencies_and_methods(self, projects):
         """
@@ -56,6 +57,8 @@ class DependencyMapper:
                 methods = {}
 
                 for file in project["files"]:
+                    if not file.endswith(self.supported_extensions):
+                        continue
                     try:
                         with open(file, "r", encoding="utf-8") as f:
                             content = f.read()
@@ -85,37 +88,39 @@ class DependencyMapper:
                             # Find method definitions
                             method_matches = self.method_pattern.findall(content)
                             for method in method_matches:
-                                if method not in methods:
-                                    methods[method] = []
-                                methods[method].append(file)
+                                method_name = f"{method}_{os.path.basename(file)}"
+                                if method_name not in methods:
+                                    methods[method_name] = []
+                                methods[method_name].append(file)
 
                             # Find method usages
-                            for method in methods:
+                            for method_name in methods:
+                                method = method_name.split("_")[0]
                                 usage_pattern = re.compile(
                                     r"\b" + re.escape(method) + r"\b"
                                 )
                                 if usage_pattern.search(content):
-                                    if method not in method_usage_map:
-                                        method_usage_map[method] = []
-                                    method_usage_map[method].append(file)
+                                    if method_name not in method_usage_map:
+                                        method_usage_map[method_name] = []
+                                    method_usage_map[method_name].append(file)
 
                     except Exception as e:
                         # Log any errors that occur during file reading
                         self.logger.error(f"Failed to read file {file}: {str(e)}")
 
                 dependency_map[project["name"]] = dependencies
-                for method, files in methods.items():
-                    if method not in method_usage_map:
-                        method_usage_map[method] = []
-                    method_usage_map[method].extend(files)
+                for method_name, files in methods.items():
+                    if method_name not in method_usage_map:
+                        method_usage_map[method_name] = []
+                    method_usage_map[method_name].extend(files)
 
         except Exception as e:
             # Log any errors that occur during dependency mapping
             self.logger.error(f"Failed to map dependencies: {str(e)}")
 
         # Deduplicate method usage entries
-        for method in method_usage_map:
-            method_usage_map[method] = list(set(method_usage_map[method]))
+        for method_name in method_usage_map:
+            method_usage_map[method_name] = list(set(method_usage_map[method_name]))
 
         # Translate localhost dependencies to project names
         for project, dependencies in dependency_map.items():
